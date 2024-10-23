@@ -3,7 +3,7 @@ from tkinter import ttk, filedialog, messagebox
 import pandas as pd
 import numpy as np
 import math
-from scipy import stats  # Added for Z-Score and Percent Rank calculations
+from scipy import stats
 
 # Calculation function code as a string
 calculate_dps_per_gold_code = '''
@@ -132,9 +132,9 @@ class Tooltip(object):
         y += self.widget.winfo_rooty() + y_bottom + 10
         # creates a toplevel window
         self.tw = tk.Toplevel(self.widget)
-        self.tw.wm_overrideredirect(True)  # removes the window decorations
+        self.tw.wm_overrideredirect(True)  
         self.tw.wm_geometry("+%d+%d" % (x, y))
-        self.tw.wm_attributes("-topmost", True)  # Ensures tooltip is on top
+        self.tw.wm_attributes("-topmost", True)  
         label = tk.Label(self.tw, text=self.text, justify='left',
                          background='lightyellow', relief='solid', borderwidth=1,
                          wraplength = self.wraplength)
@@ -149,7 +149,7 @@ class TowerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Warcraft 3 Tower Balancer by Aphotica (Discord: https://discord.gg/Qsg6UDn)")
-        self.root.geometry("1455x700")  # Expanded width by 100 pixels
+        self.root.geometry("1455x700")  
         self.root.resizable(False, True)
 
         self.window_tracker = {
@@ -174,7 +174,7 @@ class TowerApp:
         style.configure('White.TCheckbutton', background='white', foreground='black')
 
         self.towers = []
-        self.balance_ranges = {}  # Will be dynamically calculated
+        self.balance_ranges = {}  
         self.global_dps_per_gold_ranges = {}  # For storing global DPS/Gold ranges
         self.global_raw_dps_ranges = {}  # For storing global Raw DPS ranges
 
@@ -376,7 +376,7 @@ class TowerApp:
         result_frame.columnconfigure(0, weight=1)
         result_frame.rowconfigure(0, weight=1)
 
-        self.result_text = tk.Text(result_frame, height=13)  # Increased height to accommodate 12 towers
+        self.result_text = tk.Text(result_frame, height=13)  
         self.result_text.grid(row=0, column=0, sticky='nsew')
 
         result_scrollbar = ttk.Scrollbar(result_frame, orient=tk.VERTICAL, command=self.result_text.yview)
@@ -492,7 +492,7 @@ class TowerApp:
             else:
                 difference = abs(current_value - original_value) * 100  # For Poison (boolean comparison)
 
-            # If the difference exceeds 0.1%, set tower number label to red and bold
+            # Broken - fix later
             if difference > 0.1:
                 tower_fields['No.'].config(foreground="red", font=("TkDefaultFont", 10, "bold"))
             else:
@@ -637,7 +637,7 @@ class TowerApp:
 
 
     def add_tower(self):
-        row = len(self.towers)  # No need to offset by 1
+        row = len(self.towers)  
         tower_fields = {}
 
         # Create the original values dictionary for storing initial field values
@@ -1311,8 +1311,8 @@ class TowerApp:
                         'Target': target_type,
                         'Global DPS per Gold': global_dps_per_gold_str,
                         'Global Raw DPS': global_raw_dps_str,
-                        'Z-Score': z_score_ground_str,          # Added
-                        'Percent Rank': percent_rank_ground_str # Added
+                        'Z-Score': z_score_ground_str,          
+                        'Percent Rank': percent_rank_ground_str 
                     })
 
                     # Secondary Variant: Air with 0.5x 'All' balance range and no splash damage
@@ -1378,8 +1378,8 @@ class TowerApp:
                         'Target': 'Air',
                         'Global DPS per Gold': global_dps_per_gold_str,
                         'Global Raw DPS': global_raw_dps_str,
-                        'Z-Score': z_score_air_str,          # Added
-                        'Percent Rank': percent_rank_air_str # Added
+                        'Z-Score': z_score_air_str,          
+                        'Percent Rank': percent_rank_air_str 
                     })
 
                 elif target_type == 'Air Splash':
@@ -1516,8 +1516,8 @@ class TowerApp:
                         'Target': 'Ground',
                         'Global DPS per Gold': global_dps_per_gold_str,
                         'Global Raw DPS': global_raw_dps_str,
-                        'Z-Score': z_score_ground_str,          # Added
-                        'Percent Rank': percent_rank_ground_str # Added
+                        'Z-Score': z_score_ground_str,          
+                        'Percent Rank': percent_rank_ground_str 
                     })
 
                 else:
@@ -1759,9 +1759,9 @@ class TowerApp:
                 'Utility Boost': tower['Utility Boost'].get() or '0',
                 'Poison': tower['Poison'].get(),
                 'Target Type': tower['Target Type'].get(),
-                'Z-Score': tower.get('Z-Score', tk.StringVar()).get(),          # Updated
-                'Percent Rank': tower.get('Percent Rank', tk.StringVar()).get(), # Updated
-                'Balance Status': tower.get('Balance Status', tk.StringVar()).get(), # Updated
+                'Z-Score': tower.get('Z-Score', tk.StringVar()).get(),          
+                'Percent Rank': tower.get('Percent Rank', tk.StringVar()).get(), 
+                'Balance Status': tower.get('Balance Status', tk.StringVar()).get(), 
                 'Race': self.race_entry.get(),
                 'Tower Number': i+1
             }
@@ -1832,7 +1832,7 @@ class TowerApp:
             editor.protocol("WM_DELETE_WINDOW", lambda: self.close_window('algorithm_editor', editor))
             editor.bind("<Escape>", lambda event: self.close_window('algorithm_editor', editor))
 
-            # Rest of your window setup code goes here
+            
             tk.Label(editor, text="Calculation Function (Python Code):").grid(row=0, column=0, sticky='nw', padx=10, pady=5)
             self.calc_function_text = tk.Text(editor, height=20, width=90)
             self.calc_function_text.grid(row=1, column=0, padx=10, pady=5, sticky='nsew')
@@ -2066,10 +2066,10 @@ class TowerApp:
             self.dynamic_calc_text.insert(tk.END, dynamic_code)
             self.dynamic_calc_text.config(state=tk.DISABLED)  # Make the text read-only
 
-    # Rest of your method code...
+    
 
 
-        # Comments explaining each part
+        
             comments_text = '''
     # Explanation of Key Components:
     # 1. Outlier Removal: This section uses IQR (Interquartile Range) to exclude extreme outliers from the DPS per Gold calculation.
