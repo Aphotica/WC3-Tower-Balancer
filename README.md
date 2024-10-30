@@ -17,6 +17,7 @@ Warcraft III Tower Balancer
 
 NOTE: To retain modified data while flipping through races, a temp_backup.csv is created in the exe location to recall the data. Delete this when no longer needed.
 
+![Dark Mode UI](https://github.com/Aphotica/WC3-Tower-Balancer/blob/main/Tower%20Balancer%20UI.jpg)
 
 **Further Details:**
 
