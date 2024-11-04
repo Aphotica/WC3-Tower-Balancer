@@ -53,13 +53,46 @@ If the user enables "Ignore Outliers," the algorithm will exclude extreme outlie
 
 **ALGORITHM**
 
-#def calculate_dps_per_gold(base_damage, dice, sides_per_die, cooldown, range_val,
-                           full_splash, medium_splash, small_splash, gold_cost,
-                           spell_dps=0, spell_dps_cooldown=1, poison=False,
-                           utility_boost=1.0, slow_percentage=0, poison_duration=1,
-                           slow_duration=3, enemy_speed=415, target_type='All',
-                           include_splash=True):
-    import math
+calculate_dps_per_gold_code = '''
+import math
+
+def calculate_dps_per_gold(
+    base_damage, dice, sides_per_die, cooldown, range_val,
+    full_splash, medium_splash, small_splash, gold_cost,
+    spell_dps=0, spell_dps_cooldown=1, poison=False,
+    utility_boost=1.0, slow_percentage=0, poison_duration=1,
+    slow_duration=3, enemy_speed=415, target_type='All',
+    include_splash=True,
+    unit_density=125 
+):
+    """
+    Calculate Total DPS and DPS per Gold for a tower in Wintermaul Wars.
+
+    Parameters:
+        base_damage (float): Base damage of the tower.
+        dice (int): Number of dice rolled for damage.
+        sides_per_die (int): Number of sides per die.
+        cooldown (float): Time between attacks in seconds.
+        range_val (float): Attack range of the tower.
+        full_splash (float): Radius for full splash damage.
+        medium_splash (float): Radius for medium splash damage.
+        small_splash (float): Radius for small splash damage.
+        gold_cost (float): Gold cost of the tower.
+        spell_dps (float, optional): DPS from spells. Defaults to 0.
+        spell_dps_cooldown (float, optional): Cooldown for spell DPS. Defaults to 1.
+        poison (bool, optional): Whether poison is applied. Defaults to False.
+        utility_boost (float, optional): Utility boost multiplier. Defaults to 1.0.
+        slow_percentage (float, optional): Slow percentage applied. Defaults to 0.
+        poison_duration (float, optional): Duration of poison effect. Defaults to 1.
+        slow_duration (float, optional): Duration of slow effect. Defaults to 3.
+        enemy_speed (float, optional): Speed of the enemy. Defaults to 415.
+        target_type (str, optional): Target type. Defaults to 'All'.
+        include_splash (bool, optional): Whether to include splash damage. Defaults to True.
+        unit_density (float, optional): Approximates unit density in splash damage to be one unit found in every 1/2 square.
+
+    Returns:
+        tuple: (Total DPS, DPS per Gold)
+    """
 
     # Calculate average damage per hit
     avg_damage = base_damage + (dice * (sides_per_die + 1) / 2)
@@ -67,31 +100,92 @@ If the user enables "Ignore Outliers," the algorithm will exclude extreme outlie
     # Calculate hits per second
     hits_per_second = 1 / cooldown
 
-    # Calculate base DPS (damage per second)
-    base_dps = avg_damage * hits_per_second
-
     # Polynomial Range Modifier
     def polynomial_range_modifier(range_val, n=0.6, max_range=2800):
         normalized_range = (range_val - 200) / (max_range - 200)
-        normalized_range = max(0, min(normalized_range, 1))  # Ensure within [0,1]
+        normalized_range = max(0, min(normalized_range, 1))  # Clamp to [0,1]
         return 1 + normalized_range ** n
 
     range_adjustment = polynomial_range_modifier(range_val)
 
-    range_adjusted_dps = base_dps * range_adjustment
+    # Splash Damage Calculation
+    def calculate_splash_damage(avg_damage, full_splash, medium_splash, small_splash, unit_density):
+        """
+        Calculate the total splash damage based on splash radii and unit density.
 
-    # Adjusted Splash Multiplier
-    splash_multiplier = 1.2
+        Parameters:
+            avg_damage (float): Average damage per hit.
+            full_splash (float): Full splash radius.
+            medium_splash (float): Medium splash radius.
+            small_splash (float): Small splash radius.
+            unit_density (float): Approximates unit density in splash damage to be one unit found in every 1/2 square.
 
-    # Calculate splash DPS if included
-    if include_splash:
-        total_splash_dps = (
-            (full_splash / 100 * range_adjusted_dps) +
-            (medium_splash / 100 * range_adjusted_dps * 0.5) +
-            (small_splash / 100 * range_adjusted_dps * 0.25)
-        ) * splash_multiplier
+        Returns:
+            float: Total splash damage from a single hit.
+        """
+
+        # Define splash tiers with their respective radii and multipliers
+        all_splash_tiers = [
+            ('full', full_splash, 1.0),
+            ('medium', medium_splash, 0.5),
+            ('small', small_splash, 0.25)
+        ]
+
+        # Filter out splash tiers that are smaller than higher priority tiers
+        # Only include medium_splash if it's >= full_splash
+        # Only include small_splash if it's >= medium_splash and >= full_splash
+        filtered_splash_tiers = []
+
+        # Always include full_splash if it's greater than 0
+        if full_splash > 0:
+            filtered_splash_tiers.append(('full', full_splash, 1.0))
+
+        # Include medium_splash only if it's >= full_splash
+        if medium_splash >= full_splash and medium_splash > 0:
+            filtered_splash_tiers.append(('medium', medium_splash, 0.5))
+
+        # Include small_splash only if it's >= medium_splash and >= full_splash
+        if small_splash >= medium_splash and small_splash >= full_splash and small_splash > 0:
+            filtered_splash_tiers.append(('small', small_splash, 0.25))
+
+        # Sort the filtered splash tiers in ascending order based on radius
+        # This ensures that higher damage tiers (smaller radii) are processed first
+        sorted_splash_tiers = sorted(filtered_splash_tiers, key=lambda x: x[1])
+
+        total_splash_damage = 0.0
+        previous_radius = 0.0
+
+        for tier_name, radius, multiplier in sorted_splash_tiers:
+            if radius <= previous_radius:
+                continue  # Skip if current radius is not greater than previous
+
+            # Calculate units in current tier excluding units in inner tiers
+            units_in_tier = (radius - previous_radius) / unit_density
+
+            units_in_tier = max(units_in_tier, 0)  # Prevent negative units
+
+            # Calculate splash damage for this tier
+            damage = units_in_tier * multiplier * avg_damage
+            total_splash_damage += damage
+
+            # Update previous_radius for the next tier
+            previous_radius = radius
+
+        return total_splash_damage
+
+    # Adjust average damage per hit with splash
+    if include_splash and (full_splash > 0 or medium_splash > 0 or small_splash > 0):
+        splash_damage = calculate_splash_damage(avg_damage, full_splash, medium_splash, small_splash, unit_density)
+        avg_damage_with_splash = avg_damage + splash_damage  # Total damage per hit including splash
     else:
-        total_splash_dps = 0
+        splash_damage = 0.0
+        avg_damage_with_splash = avg_damage
+
+    # Calculate base DPS (damage per second)
+    base_dps = avg_damage_with_splash * hits_per_second
+
+    # Apply range adjustment
+    range_adjusted_dps = base_dps * range_adjustment
 
     # Add Spell DPS (if provided)
     if spell_dps and spell_dps_cooldown > 0:
@@ -101,15 +195,15 @@ If the user enables "Ignore Outliers," the algorithm will exclude extreme outlie
 
     # Adjusted Poison Effect
     if poison:
-        poison_dps = 5  # 5 DPS for poison
+        poison_dps = 5
         total_poison_damage = poison_dps * poison_duration
         poison_dps_contribution = total_poison_damage / poison_duration
         special_dps += poison_dps_contribution
 
         # Calculate additional hits due to slow effect from poison
-        effective_speed = enemy_speed * (1 - 0.3)  # Poison slows by 30%
+        effective_speed = enemy_speed * (1 - 0.3)   # slow by 30%
         # Calculate extra time in range due to slow
-        slow_factor = 1 / (1 - 0.3)  # ~1.4286
+        slow_factor = 1 / (1 - 0.3)
         extra_time_poison = slow_duration * (slow_factor - 1)
         additional_hits_poison = extra_time_poison * hits_per_second
         special_dps += (additional_hits_poison * avg_damage) / slow_duration
@@ -135,7 +229,8 @@ If the user enables "Ignore Outliers," the algorithm will exclude extreme outlie
     else:
         slow_dps_contribution = 0
 
-    total_dps = range_adjusted_dps + total_splash_dps + special_dps + slow_dps_contribution
+    # Total DPS before utility boost
+    total_dps = range_adjusted_dps + special_dps + slow_dps_contribution
 
     # Apply utility boost
     total_dps *= utility_boost
@@ -144,6 +239,8 @@ If the user enables "Ignore Outliers," the algorithm will exclude extreme outlie
     dps_per_gold = (total_dps / gold_cost) * 100
 
     return total_dps, dps_per_gold
+
+'''
 
 
 **DYNAMIC ALGORITHM**
